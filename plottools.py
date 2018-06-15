@@ -7,6 +7,7 @@ __author__ = 'Antonin Affholder'
 
 import matplotlib.pyplot as plt
 import numpy as np
+import analysis
 
 
 def Hodograph(ax,xlim):
@@ -71,7 +72,6 @@ def Hodograph(ax,xlim):
     circle = plt.Circle((0,0),xlim,fill=False,color='k',alpha=1)
     ax.add_artist(circle)
 
-
 def PlotHodograph(ax,U,V,deltat,legend=True,orientation='EW',type='A'):
     """
             *** Function PlotHodograph ***
@@ -130,14 +130,14 @@ def PlotADCP(ax,atd,depths,V):
     TODO adapt to filtered and regular data
     Returns km
     """
-    X,Y = np.meshgrid(atd_reg/1000,ADCP_V1['depths'])
+    X,Y = np.meshgrid(atd/1000,depths)
     lvls = np.round(np.arange(-0.8,0.9,0.1),1)
     lvls = np.delete(lvls,8)
-    ax.contourf(X,Y,np.transpose(V_reg_filt),levels=lvls)
-    cont = ax.contour(X,Y,np.transpose(V_reg_filt),levels = lvls,linewidths=1.5)
+    ax.contourf(X,Y,np.transpose(V),levels=lvls)
+    cont = ax.contour(X,Y,np.transpose(V),levels = lvls,linewidths=1.5)
     ax.clabel(cont, cont.levels,fmt='%0.1f',fontsize=8, inline=1,colors='k')
     lvl0 = [0]
-    ax.contour(X,Y,np.transpose(V_reg_filt),levels=lvl0,colors='black',linewidths=2)
+    ax.contour(X,Y,np.transpose(V),levels=lvl0,colors='black',linewidths=2)
 
 def PlotMaxMin(ax,V,atd,depths):
     """

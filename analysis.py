@@ -10,6 +10,110 @@ __author__ = 'Antonin Affholder'
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 
+def ComputeATD(lon,lat,m = Basemap(projection='merc')):
+    """
+    Computes the along track distance between the given points
+    """
+    x,y = m(lon,lat)
+    atd = np.cumsum(np.sqrt( (x[1:] - x[:-1])**2 + (y[1:] - y[:-1])**2 ))
+    atd = np.append(np.array([0]),atd)
+    return(atd)
+
+def RegularGrid(matrix,x,dx,y):
+    """
+    regularaizes the grid
+    """
+    xreg = np.arange(x[0] + dx/2,x[-1] - dx/2,dx)
+    matrix_reg = np.full((len(xreg),len(y)),np.nan)
+    for j in range(len(y)):
+        for i in range(len(xreg)):
+            val = xreg[i] #value to interpolate to
+            valsup = val + dx/2
+            valinf = val - dx/2
+            #find the points laying in the interval
+            indexes = np.where((x >= valinf) * (x <= valsup))
+            if len(indexes) == 0:
+                fill = np.nan
+            elif np.sum(np.isfinite(matrix[indexes,j])) == 0:
+                fill = np.nan
+            else:
+                fill = np.nanmean(matrix[indexes,j])
+            matrix_reg[i,j] = fill
+    return(matrix_reg,xreg)
+
+def BoxCarFilter(M,bins_x,bins_y):
+    """
+    Boxcar filter, or blur
+    Every point is the average of the box x_len,ylen
+    M is the field matrix of size = (len(X),len(Y))
+    bins_x is the HALF of the horizontal size of the box in bins
+    bins_y is the HALF of the vertical size of the box in bins
+    """
+    xl,yl = M.shape
+    boxdim = 2*bins_x*2*bins_y
+    Mp = np.zeros((xl,yl))
+    for i in range(xl):
+        for j in range(yl):
+            xmin = i - bins_x
+            ymin = j - bins_y
+            xmax = i + bins_x
+            ymax = j + bins_y
+
+            if xmin < 0:
+                xmin = 0
+            if ymin < 0:
+                ymin = 0
+            if xmax > xl:
+                xmax = -1
+            if ymax > yl:
+                ymax = -1
+            box = M[xmin : xmax, ymin : ymax]
+            if np.sum(np.isfinite(box)) < boxdim/2:
+                avg = np.nan
+            else:
+                avg = np.nanmean(box)
+            Mp[i,j] = avg
+    return(Mp)
+
+def FindMaxMin(V,atd,depths,depthlim = [0,3000]):
+    """
+
+    """
+    atd_min = []
+    atd_max = []
+    dpt = []
+
+    depthmin = depthlim[0]
+    depthmax = depthlim[1]
+
+    subdepths = depths[(depths > depthmin) * (depths < depthmax)]
+
+    for i in range(len(subdepths)):
+        index = np.where(depths == subdepths[i])
+        vs = V[:,index]
+        if np.sum(np.isfinite(vs)) > 0:
+            min_index = np.where(vs == np.nanmin(vs))[0][0]
+            max_index = np.where(vs == np.nanmax(vs))[0][0]
+            dpt.append(subdepths[i])
+            atd_min.append(atd[min_index])
+            atd_max.append(atd[max_index])
+    atd_min = np.array(atd_min)
+    atd_max = np.array(atd_max)
+    dpt = np.array(dpt)
+    return(atd_min,atd_max,dpt)
+
+def RadialVorticity(v,x):
+    '''
+    Poor man's vorticity
+    '''
+    zeta = []
+    for j in range(len(x)):
+        Vs = v[j,:]
+        Bs = Vs/x[j]
+        zetas = 2*np.arctan(Bs)
+        zeta.append(zetas)
+    zeta = np.array(zeta)
+    return(zeta)
 
 def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A'):
     """
@@ -113,93 +217,3 @@ def FindCenter2(eddies,eddy,m=Basemap(projection='merc')):
     lon_center,lat_center = FindCenter(U_me,V_me,lon,lat,lon_c_prior,lat_c_prior)
     omega,score = FindOmega(U_me,V_me,lon,lat,lon_center,lat_center)
     return(lon_center,lat_center,omega)
-
-def RegularGrid(matrix,x,dx,y):
-    """
-    regularaizes the grid
-    """
-    xreg = np.arange(x[0] + dx/2,x[-1] - dx/2,dx)
-    matrix_reg = np.full((len(xreg),len(y)),np.nan)
-    for j in range(len(y)):
-        for i in range(len(xreg)):
-            val = xreg[i] #value to interpolate to
-            valsup = val + dx/2
-            valinf = val - dx/2
-            #find the points laying in the interval
-            indexes = np.where((x >= valinf) * (x <= valsup))
-            if len(indexes) == 0:
-                fill = np.nan
-            elif np.sum(np.isfinite(matrix[indexes,j])) == 0:
-                fill = np.nan
-            else:
-                fill = np.nanmean(matrix[indexes,j])
-            matrix_reg[i,j] = fill
-    return(matrix_reg,xreg)
-
-def RadialVorticity(v,x):
-    '''
-    Poor man's vorticity
-    '''
-    zeta = []
-    for j in range(len(x)):
-        Vs = v[j,:]
-        Bs = Vs/x[j]
-        zetas = 2*np.arctan(Bs)
-        zeta.append(zetas)
-    zeta = np.array(zeta)
-    return(zeta)
-
-def BoxCarFilter(M,bins_x,bins_y):
-    """
-    Boxcar filter, or blur
-    Every point is the average of the box x_len,ylen
-    M is the field matrix of size = (len(X),len(Y))
-    bins_x is the HALF of the horizontal size of the box in bins
-    bins_y is the HALF of the vertical size of the box in bins
-    """
-    xl,yl = M.shape
-    boxdim = 2*bins_x*2*bins_y
-    Mp = np.zeros((xl,yl))
-    for i in range(xl):
-        for j in range(yl):
-            xmin = i - bins_x
-            ymin = j - bins_y
-            xmax = i + bins_x
-            ymax = j + bins_y
-
-            if xmin < 0:
-                xmin = 0
-            if ymin < 0:
-                ymin = 0
-            if xmax > xl:
-                xmax = -1
-            if ymax > yl:
-                ymax = -1
-            box = M[xmin : xmax, ymin : ymax]
-            if np.sum(np.isfinite(box)) < boxdim/2:
-                avg = np.nan
-            else:
-                avg = np.nanmean(box)
-            Mp[i,j] = avg
-    return(Mp)
-
-
-def FindMaxMin(V,atd,depths):
-    """
-    """
-    atd_min = []
-    atd_max = []
-    dpt = []
-
-    for i in range(len(depths)):
-        vs = V[:,i]
-        if np.sum(np.isfinite(vs)) > 0:
-            min_index = np.where(vs == np.nanmin(vs))[0][0]
-            max_index = np.where(vs == np.nanmax(vs))[0][0]
-            dpt.append(depths[i])
-            atd_min.append(atd_reg[min_index])
-            atd_max.append(atd_reg[max_index])
-    atd_min = np.array(atd_min)
-    atd_max = np.array(atd_max)
-    dpt = np.array(dpt)
-    return(atd_min,atd_max,dpt)
