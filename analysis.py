@@ -3,17 +3,24 @@
 
 ### Functions to help with ADCP data analysis
 
+__author__ = 'Antonin Affholder'
+
 ## Imports
 import matplotlib.pyplot as plt
 import numpy as np
 
 def Hodograph(ax,xlim):
-    '''
-    Makes an plot containing the background for a Hodograph
-    Requires an ax object that is blank
-    xlim is positive
-    works on tha ax object given
-    '''
+    """
+            *** Function Hodograph ***
+    Makes the suitable background for a hodograph plot
+            *** Arguments ***
+    - ax is an pyplot Axes instance that should be empty
+    - xlim is the maximum extension of the plot (ray)
+            *** Outputs ***
+    No outputs, works on the Axes instance directly
+            *** Remarks ***
+    Set xlim in km
+    """
     ## Initialization
     # Set axis limits, in order to see circle aspect MUST be set to equal
     ax.set_xlim(-xlim,xlim)
@@ -67,9 +74,23 @@ def Hodograph(ax,xlim):
 
 def PlotHodograph(ax,U,V,deltat,legend=True,orientation='EW',type='A'):
     """
-    Plots hodograph data from U and V
-    Works on ax object for flexitivity.
-    Should be given an ax background of hodograph
+            *** Function PlotHodograph ***
+    Adds hodograph plot to the hodograph background
+            *** Arguments ***
+    - ax is an pyplot Axes instance that should contain the proper background
+    produced with analysis.Hodograph
+    - U and V are 1D arrays containing the measured velocities
+    - deltat is the time between each velocity sampling
+    * kwargs *
+        - legend: plots legend if True.
+            default = True
+        - orientation: direction of cruisetrack, zonal 'EW' or meridional 'SN'
+            default = 'EW'
+        - type: eddy type, anticyclonic 'A' or cyclonic 'C'
+            default = 'A'
+            *** Outputs ***
+    No outputs, works on the Axes instance directly
+            *** Remarks ***
     """
     ## Plot the data
     # Make hodograph from velocities
@@ -102,3 +123,16 @@ def PlotHodograph(ax,U,V,deltat,legend=True,orientation='EW',type='A'):
     # Legend
     if legend:
         ax.legend(handles = [first_point,last_point,center],bbox_to_anchor=(1.1, 1))
+
+def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A'):
+    """
+    returns the orientation of vector we should see at measure point if center was center
+
+    Designed to work on anticyclones only for now
+    """
+    r = np.sqrt( (x_center - x_me)**2 + (y_center - y_me)**2 )
+    angle = np.arctan2(y_me-y_center,x_me-x_center) #convention of artcan2 inverts y and x coordinates
+    norm = r * np.tan(omega)
+    u = norm * np.cos(angle + np.pi/2)
+    v = norm * np.sin(angle + np.pi/2)
+    return(u,v)

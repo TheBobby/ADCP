@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+__author__ = 'Antonin Affholder'
+
 ### Functions to help with file reading, formatting and saving
 
 import numpy as np

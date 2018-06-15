@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+__author__ = 'Antonin Affholder'
+
 ### Functions to help with ADCP data manipulation and plots
 ### The philosophy of these function is that they only require the ADCP data
 ### For more high level use of the data, see --INSERT--
