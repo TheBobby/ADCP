@@ -124,20 +124,28 @@ def PlotHodograph(ax,U,V,deltat,legend=True,orientation='EW',type='A'):
     if legend:
         ax.legend(handles = [first_point,last_point,center],bbox_to_anchor=(1.1, 1))
 
-def PlotADCP(ax,atd,depths,V):
+def PlotADCP(ax,atd,depths,V,levels = 'auto'):
     """
     Still unfinished with flexibility of reg and filt
     TODO adapt to filtered and regular data
     Returns km
+    levels can be
     """
     X,Y = np.meshgrid(atd/1000,depths)
-    lvls = np.round(np.arange(-0.8,0.9,0.1),1)
-    lvls = np.delete(lvls,8)
-    ax.contourf(X,Y,np.transpose(V),levels=lvls)
-    cont = ax.contour(X,Y,np.transpose(V),levels = lvls,linewidths=1.5)
-    ax.clabel(cont, cont.levels,fmt='%0.1f',fontsize=8, inline=1,colors='k')
-    lvl0 = [0]
-    ax.contour(X,Y,np.transpose(V),levels=lvl0,colors='black',linewidths=2)
+    if levels == 'auto':
+        ax.contourf(X,Y,np.transpose(V),levels=lvls)
+        cont = ax.contour(X,Y,np.transpose(V),linewidths=1.5)
+        ax.clabel(cont, cont.levels,fmt='%0.1f',fontsize=8, inline=1,colors='k')
+        lvl0 = [0]
+        ax.contour(X,Y,np.transpose(V),levels=lvl0,colors='black',linewidths=2)
+    else:
+        lvls = np.round(levels,1)
+        lvls = np.delete(lvls,np.where(lvls==0)[0])
+        ax.contourf(X,Y,np.transpose(V),levels=lvls)
+        cont = ax.contour(X,Y,np.transpose(V),levels = lvls,linewidths=1.5)
+        ax.clabel(cont, cont.levels,fmt='%0.1f',fontsize=8, inline=1,colors='k')
+        lvl0 = [0]
+        ax.contour(X,Y,np.transpose(V),levels=lvl0,colors='black',linewidths=2)
 
 def PlotMaxMin(ax,V,atd,depths):
     """

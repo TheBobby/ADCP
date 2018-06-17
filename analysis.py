@@ -9,6 +9,8 @@ __author__ = 'Antonin Affholder'
 
 from mpl_toolkits.basemap import Basemap
 import numpy as np
+import netCDF4 as nc
+import datetime as dt
 
 def ComputeATD(lon,lat,m = Basemap(projection='merc')):
     """
@@ -101,6 +103,34 @@ def FindMaxMin(V,atd,depths,depthlim = [0,3000]):
     atd_max = np.array(atd_max)
     dpt = np.array(dpt)
     return(atd_min,atd_max,dpt)
+
+def TrackSSH(lon,lat,SSH,date,mid=True):
+    """
+    Gives the SLA measured on the ship's track at date
+    SSH is a netcdf file
+    date is datetime date
+    """
+    tunits = SSH['time'].units
+    time = nc.num2date(SSH['time'][:],tunits)
+    if mid: #12hrs offset between date and dates in time
+        time_index = np.where(time == date + dt.timedelta(hours=12))[0][0]
+    else:
+        time_index = np.where(time == date)[0][0]
+    ssh = []
+    xstep = SSH['longitude'].step
+    ystep = SSH['latitude'].step
+    ssh_xaxis = SSH['longitude'][:]
+    ssh_yaxis = SSH['latitude'][:]
+    zos = SSH['zos'][time_index,:,:]
+    for i in range(len(lon)):
+        longitude = lon[i]
+        latitude = lat[i]
+        lg_idx = np.where((ssh_xaxis >= longitude - xstep/2)*(ssh_xaxis <= longitude + xstep/2))[0][0]
+        lt_idx = np.where((ssh_yaxis >= latitude - ystep/2)*(ssh_yaxis <= latitude + ystep/2))[0][0]
+        ssh.append(zos[lt_idx,lg_idx])
+    ssh = np.array(ssh)
+    return(ssh)
+
 
 def RadialVorticity(v,x):
     '''
