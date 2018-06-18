@@ -119,17 +119,41 @@ def TrackSSH(lon,lat,SSH,date,mid=True):
     ssh = []
     xstep = SSH['longitude'].step
     ystep = SSH['latitude'].step
+    hxstep = np.round(xstep/2,3)
+    hystep = np.round(ystep/2,3)
     ssh_xaxis = SSH['longitude'][:]
     ssh_yaxis = SSH['latitude'][:]
     zos = SSH['zos'][time_index,:,:]
     for i in range(len(lon)):
         longitude = lon[i]
         latitude = lat[i]
-        lg_idx = np.where((ssh_xaxis >= longitude - xstep/2)*(ssh_xaxis <= longitude + xstep/2))[0][0]
-        lt_idx = np.where((ssh_yaxis >= latitude - ystep/2)*(ssh_yaxis <= latitude + ystep/2))[0][0]
+        lg_idx = np.where((ssh_xaxis >= longitude - hxstep)*(ssh_xaxis <= longitude + hxstep))[0][0]
+        lt_idx = np.where((ssh_yaxis >= latitude - hystep)*(ssh_yaxis <= latitude + hystep))[0][0]
         ssh.append(zos[lt_idx,lg_idx])
     ssh = np.array(ssh)
     return(ssh)
+
+def VirtualCenter(U_int,V_int,orientation='EW'):
+    """
+    Finds the hodograph virtual center index
+    """
+    if orientation == 'EW':
+        # Anticylonic case and EW section
+        y_max = np.nanmax(np.abs(V_int))
+        index = np.where(V_int == y_max)[0]
+        if len(index)>1:
+            index = index[0]
+        else:
+            index = None
+    elif orientation == 'SN':
+        x_max = np.nanmax(np.abs(U_int))
+        index = np.where(U_int == x_max)[0]
+        if len(index)>1:
+            index = index[0]
+        else:
+            index = None
+    return(index)
+
 
 
 def RadialVorticity(v,x):

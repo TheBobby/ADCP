@@ -6,11 +6,18 @@
 __author__ = 'Antonin Affholder'
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import analysis
 
+### Defining global colormap for ADCP Plotting
+cmap = mpl.cm.viridis
+norm = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
+levels = np.round(np.arange(-0.5,0.55,.05),2)
+levels2 = np.delete(levels,np.where(levels==0))
 
-def Hodograph(ax,xlim):
+
+def Hodograph(ax,xlim,xtext=True,ytext=True):
     """
             *** Function Hodograph ***
     Makes the suitable background for a hodograph plot
@@ -42,8 +49,10 @@ def Hodograph(ax,xlim):
     for j in range(len(x_ticks)):
         ax.text(x_ticks[j],y_ticks[j],ticks[j])
     # Annotate the axes
-    ax.text(0,-xlim - 1.5,'Eastward distance (km)',fontsize=16,horizontalalignment='center',verticalalignment='center')
-    ax.text(-xlim - 1.5,0,'Northward distance (km)',fontsize=16,rotation=90,horizontalalignment='center',verticalalignment='center')
+    if xtext:
+        ax.text(0,-xlim - 1.5,'Eastward distance (km)',fontsize=16,horizontalalignment='center',verticalalignment='center')
+    if ytext:
+        ax.text(-xlim - 1.5,0,'Northward distance (km)',fontsize=16,rotation=90,horizontalalignment='center',verticalalignment='center')
     # Make the grid
         # Lines
     angle = np.pi/6
@@ -124,28 +133,23 @@ def PlotHodograph(ax,U,V,deltat,legend=True,orientation='EW',type='A'):
     if legend:
         ax.legend(handles = [first_point,last_point,center],bbox_to_anchor=(1.1, 1))
 
-def PlotADCP(ax,atd,depths,V,levels = 'auto'):
+def PlotADCP(ax,atd,depths,V):
     """
     Still unfinished with flexibility of reg and filt
     TODO adapt to filtered and regular data
     Returns km
     levels can be
     """
+    global levels
+    global levels2
+    global cmap
+    global norm
     X,Y = np.meshgrid(atd/1000,depths)
-    if levels == 'auto':
-        ax.contourf(X,Y,np.transpose(V),levels=lvls)
-        cont = ax.contour(X,Y,np.transpose(V),linewidths=1.5)
-        ax.clabel(cont, cont.levels,fmt='%0.1f',fontsize=8, inline=1,colors='k')
-        lvl0 = [0]
-        ax.contour(X,Y,np.transpose(V),levels=lvl0,colors='black',linewidths=2)
-    else:
-        lvls = np.round(levels,1)
-        lvls = np.delete(lvls,np.where(lvls==0)[0])
-        ax.contourf(X,Y,np.transpose(V),levels=lvls)
-        cont = ax.contour(X,Y,np.transpose(V),levels = lvls,linewidths=1.5)
-        ax.clabel(cont, cont.levels,fmt='%0.1f',fontsize=8, inline=1,colors='k')
-        lvl0 = [0]
-        ax.contour(X,Y,np.transpose(V),levels=lvl0,colors='black',linewidths=2)
+    ax.contourf(X,Y,np.transpose(V),levels=levels,cmap=cmap,norm=norm)
+    cont = ax.contour(X,Y,np.transpose(V),levels = levels2,linewidths=0.5,colors='black',linestyles='dashed')
+    ax.clabel(cont,cont.levels,fmt='%1.2f',fontsize=8, inline=1,colors='k')
+    lvl0 = [0]
+    ax.contour(X,Y,np.transpose(V),levels=lvl0,colors='black',linewidths=2)
 
 def PlotMaxMin(ax,V,atd,depths):
     """
