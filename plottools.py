@@ -17,7 +17,7 @@ levels = np.round(np.arange(-0.5,0.55,.05),2)
 levels2 = np.delete(levels,np.where(levels==0))
 
 
-def Hodograph(ax,xlim,xtext=True,ytext=True):
+def Hodograph(ax,xlim,xtext=True,ytext=True,grid=2):
     """
             *** Function Hodograph ***
     Makes the suitable background for a hodograph plot
@@ -42,9 +42,9 @@ def Hodograph(ax,xlim,xtext=True,ytext=True):
     ax.yaxis.set_ticks([])
     ax.xaxis.set_ticks([])
     # Create ticks for the new axis and set their position
-    x_ticks = np.arange(0.3,xlim + 0.3,2)*np.cos(np.pi/6)
-    y_ticks = np.arange(0.3,xlim + 0.3,2)*np.sin(np.pi/6)
-    ticks = np.array(np.arange(0,xlim,2),dtype=str)
+    x_ticks = np.arange(0.3,xlim + 0.3,grid)*np.cos(np.pi/6)
+    y_ticks = np.arange(0.3,xlim + 0.3,grid)*np.sin(np.pi/6)
+    ticks = np.array(np.arange(0,xlim,grid),dtype=str)
     # Plot the ticks
     for j in range(len(x_ticks)):
         ax.text(x_ticks[j],y_ticks[j],ticks[j])
@@ -76,7 +76,7 @@ def Hodograph(ax,xlim,xtext=True,ytext=True):
 
         # Angle ticks
     for i in range((xlim//2)+1):
-        circle = plt.Circle((0,0),i*2,fill=False,color='grey',alpha=0.4)
+        circle = plt.Circle((0,0),i*grid,fill=False,color='grey',alpha=0.4)
         ax.add_artist(circle)
     circle = plt.Circle((0,0),xlim,fill=False,color='k',alpha=1)
     ax.add_artist(circle)
