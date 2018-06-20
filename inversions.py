@@ -5,7 +5,7 @@ import numpy as np
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 
-def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A'):
+def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A',fmt='AN'):
     """
             *** Function Simulate ***
     Simulates the velocities of a solid body rotation eddy
@@ -17,20 +17,26 @@ def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A'):
             default = pi*1e-6
         - type: eddy type, anticyclonic 'A' or cyclonic 'C'
             default = 'A'
+        - fmt : output format 'AN' is angle norm (faster) 'UV' is U V
             *** Outputs ***
     - u,v in the same dimension as x_me and y_me, simulated velocities
             *** Remarks ***
     """
     r = np.sqrt( (x_center - x_me)**2 + (y_center - y_me)**2 )
-    angle = np.arctan2(y_me-y_center,x_me-x_center) #convention of artcan2 inverts y and x coordinates
+    # angle = np.arctan2(y_me-y_center,x_me-x_center) #convention of artcan2 inverts y and x coordinates
+    angle = np.angle((x_me - x_center) + (y_me - y_center)*1j,deg=False)
     norm = r * np.tan(omega)
     if type == 'A':
-        u = norm * np.cos(angle + np.pi/2)
-        v = norm * np.sin(angle + np.pi/2)
-    else:
-        u = norm * np.cos(angle - np.pi/2)
-        v = norm * np.sin(angle - np.pi/2)
-    return(u,v)
+        angle = angle + np.pi/2
+    elif type == 'C':
+        angle = angle - np.pi/2
+    if fmt == 'UV':
+        u = norm * np.cos(angle)
+        v = norm * np.sin(angle)
+        return(u,v)
+    elif fmt == 'AN':
+        return(angle,norm)
+
 
 def FindCenter(U,V,lon,lat,lon_c_prior,lat_c_prior,complete=False,m=Basemap(projection='merc')):
     '''

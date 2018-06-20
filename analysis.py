@@ -141,14 +141,14 @@ def VirtualCenter(U_int,V_int,orientation='EW'):
         # Anticylonic case and EW section
         y_max = np.nanmax(np.abs(V_int))
         index = np.where(V_int == y_max)[0]
-        if len(index)>1:
+        if len(index)>0:
             index = index[0]
         else:
             index = None
     elif orientation == 'SN':
         x_max = np.nanmax(np.abs(U_int))
         index = np.where(U_int == x_max)[0]
-        if len(index)>1:
+        if len(index)>0:
             index = index[0]
         else:
             index = None
