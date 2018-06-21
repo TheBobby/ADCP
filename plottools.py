@@ -114,12 +114,12 @@ def PlotHodograph(ax,U,V,deltat,legend=True,orientation='EW',type='A'):
     # Find the virtual center
     if orientation == 'EW' and type == 'A':
         # Anticylonic case and EW section
-        y_max = np.nanmax(y)
-        index = np.where(y == y_max)[0]
+        y_max = np.nanmax(np.abs(y))
+        index = np.where(np.abs(y) == y_max)[0]
         if len(index)>1:
             index = index[0]
         x_center = x[index]
-        y_center = y_max
+        y_center = y[index]
     elif orientation == 'SN' and type == 'A':
         x_max = np.nanmax(x)
         index = np.where(x == x_max)[0]

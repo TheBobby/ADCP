@@ -43,6 +43,76 @@ def RegularGrid(matrix,x,dx,y):
             matrix_reg[i,j] = fill
     return(matrix_reg,xreg)
 
+def RegularGrid2D(matrix,x,y,dx,scale=1e3):
+    """
+    regularaizes the grid
+    x and y have same size
+    dx is in both directions
+    Problems with empty squares
+    """
+    # x axis
+    minxreg = np.floor(min(x)/scale)*scale
+    maxxreg = np.ceil(max(x)/scale)*scale
+    xbins = np.ceil((maxxreg-minxreg)/dx)
+    xsreg = np.arange(minxreg + dx/2,minxreg + xbins*dx - dx/2,dx)
+    # y axis
+    minyreg = np.floor(min(y)/scale)*scale
+    maxyreg = np.ceil(max(y)/scale)*scale
+    ybins = np.ceil((maxyreg-minyreg)/dx)
+    ysreg = np.arange(minyreg + dx/2,minyreg + ybins*dx - dx/2,dx)
+    # New coordinates
+    xreg = []
+    yreg = []
+    regmatrix = []
+    for i in range(len(xsreg)):
+        for j in range(len(ysreg)):
+            # make the square in which we retrieve the data
+            xregval = xsreg[i]
+            yregval = ysreg[j]
+            data_index = np.where(((x >= xregval - dx/2) * (x <= xregval + dx/2)) *
+                              ((y >= yregval - dx/2) * (y <= yregval + dx/2)))[0]
+            if len(data_index)>0:
+                wcolumn = np.nanmean(matrix[data_index,:],axis=0)
+                xreg.append(xregval)
+                yreg.append(yregval)
+                regmatrix.append(wcolumn)
+    xreg = np.array(xreg)
+    yreg = np.array(yreg)
+    regmatrix = np.array(regmatrix)
+    return(regmatrix,xreg,yreg)
+
+def RegularGrid3D(matrix,x,y,dx,zbins,scale=1e3):
+    """
+    regularaizes the grid
+    x and y have same size
+    dx is in both directions
+    """
+    # x axis
+    minxreg = np.floor(min(x)/scale)*scale
+    maxxreg = np.ceil(max(x)/scale)*scale
+    xbins = np.ceil((maxxreg-minxreg)/dx)
+    xsreg = np.arange(minxreg + dx/2,minxreg + xbins*dx - dx/2,dx)
+    # y axis
+    minyreg = np.floor(min(y)/scale)*scale
+    maxyreg = np.ceil(max(y)/scale)*scale
+    ybins = np.ceil((maxyreg-minyreg)/dx)
+    ysreg = np.arange(minyreg + dx/2,minyreg + ybins*dx - dx/2,dx)
+    # New coordinates
+    xreg = []
+    yreg = []
+    regmatrix = np.full((len(xsreg),len(ysreg),zbins),np.nan)
+    for i in range(len(xsreg)):
+        for j in range(len(ysreg)):
+            # make the square in which we retrieve the data
+            xregval = xsreg[i]
+            yregval = ysreg[j]
+            data_index = np.where(((x >= xregval - dx/2) * (x <= xregval + dx/2)) *
+                              ((y >= yregval - dx/2) * (y <= yregval + dx/2)))[0]
+            if len(data_index)>0:
+                wcolumn = np.nanmean(matrix[data_index,:],axis=0)
+                regmatrix[i,j,:] = wcolumn
+    return(regmatrix,xsreg,ysreg)
+
 def BoxCarFilter(M,bins_x,bins_y):
     """
     Boxcar filter, or blur
@@ -76,6 +146,84 @@ def BoxCarFilter(M,bins_x,bins_y):
                 avg = np.nanmean(box)
             Mp[i,j] = avg
     return(Mp)
+
+def BoxCarFilter3D(M,x,y,z,xdist,ydist,zdist):
+    """
+    This is not supposed to work
+    """
+    xl,yl,zl = M.shape
+    Mp = np.zeros((xl,yl,zl)) # should be nans
+
+    dx = xdist/2
+    dy = ydist/2
+    dz = zdist/2
+    xbins = np.ceil(xdist/np.nanmean(x[1:] - x[:-1]))
+    ybins = np.ceil(ydist/np.nanmean(y[1:] - y[:-1]))
+    zbins = np.ceil(zdist/np.nanmean(z[1:] - z[:-1]))
+    boxsize = xbins*ybins*zbins
+
+
+    for i in range(xl):
+        for j in range(yl):
+            for k in range(zl):
+
+                xval = x[i]
+                yval = y[j]
+                zval = z[k]
+
+                indexes = np.where( ( x >= xval - dx)*( x <= xval + dx)*
+                                    ( y >= yval - dy)*( y <= yval + dy)*
+                                    ( z >= zval - dz)*( z <= zval + dz))
+                if np.sum(np.isfinite(M[indexes])) < boxsize/6:
+                    val = np.nan
+                else:
+                    val = np.nanmean(M[indexes])
+                Mp[i,j,k] = avg
+    return(Mp)
+
+def BoxCarFilter2(M,x,y,z,xdist,ydist,zdist):
+    """
+    Boxcar filter, or blur
+    Taking into account that the data is distributed in a 3D space
+    means the spheroid
+    x y same size but not M
+    M is 2D
+
+    """
+    X,Z = np.meshgrid(x,z)
+    Y,Z = np.meshgrid(y,z)
+    X = X.flatten()
+    Y = Y.flatten()
+    Z = Z.flatten()
+    Mf = M.flatten()
+    xl,zl = M.shape
+
+    dx = xdist/2
+    dy = ydist/2
+    dz = zdist/2
+
+    xbins = np.ceil(xdist/np.nanmean(x[1:] - x[:-1]))
+    ybins = np.ceil(ydist/np.nanmean(y[1:] - y[:-1]))
+    zbins = np.ceil(zdist/np.nanmean(z[1:] - z[:-1]))
+    boxsize = xbins*ybins*zbins
+
+    Mp = np.full(len(X),np.nan)
+    for i in range(len(X)):
+        xval = X[i]
+        yval = Y[i]
+        zval = Z[i]
+
+        indexes = np.where( ( X >= xval - dx)*( X <= xval + dx)*
+                            ( Y >= yval - dy)*( Y <= yval + dy)*
+                            ( Z >= zval - dz)*( Z <= zval + dz))[0]
+        # if np.sum(np.isfinite(Mf[indexes])) < boxsize/12:
+            # val = np.nan
+        # else:
+        val = np.nanmean(Mf[indexes])
+        Mp[i] = val
+    Mpuf = np.reshape(Mp,(xl,zl))
+    return(Mp)
+
 
 def FindMaxMin(V,atd,depths,depthlim = [0,3000]):
     """
