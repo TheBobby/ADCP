@@ -190,11 +190,20 @@ def BoxCarFilter2(M,x,y,z,xdist,ydist,zdist):
     M is 2D
 
     """
-    X,Z = np.meshgrid(x,z)
-    Y,Z = np.meshgrid(y,z)
-    X = X.flatten()
-    Y = Y.flatten()
-    Z = Z.flatten()
+    X = []
+    Y = []
+    Z = []
+    # Vl = []
+    for i in range(len(x)):
+        for j in range(len(z)):
+            X.append(x[i])
+            Y.append(y[i])
+            Z.append(z[j])
+    #         Vl.append(V[i,j])
+    X = np.array(X)
+    Y = np.array(Y)
+    Z = np.array(Z)
+    # Vl = np.array(Vl)
     Mf = M.flatten()
     xl,zl = M.shape
 
@@ -205,7 +214,7 @@ def BoxCarFilter2(M,x,y,z,xdist,ydist,zdist):
     xbins = np.ceil(xdist/np.nanmean(x[1:] - x[:-1]))
     ybins = np.ceil(ydist/np.nanmean(y[1:] - y[:-1]))
     zbins = np.ceil(zdist/np.nanmean(z[1:] - z[:-1]))
-    boxsize = xbins*ybins*zbins
+    boxsize = xbins*zbins
 
     Mp = np.full(len(X),np.nan)
     for i in range(len(X)):
@@ -216,10 +225,10 @@ def BoxCarFilter2(M,x,y,z,xdist,ydist,zdist):
         indexes = np.where( ( X >= xval - dx)*( X <= xval + dx)*
                             ( Y >= yval - dy)*( Y <= yval + dy)*
                             ( Z >= zval - dz)*( Z <= zval + dz))[0]
-        # if np.sum(np.isfinite(Mf[indexes])) < boxsize/12:
-            # val = np.nan
-        # else:
-        val = np.nanmean(Mf[indexes])
+        if np.sum(np.isfinite(Mf[indexes])) < boxsize/8:
+            val = np.nan
+        else:
+            val = np.nanmean(Mf[indexes])
         Mp[i] = val
     Mpuf = np.reshape(Mp,(xl,zl))
     return(Mp)
