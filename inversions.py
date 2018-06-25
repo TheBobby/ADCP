@@ -4,6 +4,8 @@
 import numpy as np
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
+import scipy.stats as stats
+import numpy.ma as ma
 
 def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A',fmt='AN'):
     """
@@ -27,9 +29,10 @@ def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A',fmt='AN'):
     angle = np.angle((x_me - x_center) + (y_me - y_center)*1j,deg=False)
     norm = r * np.tan(omega)
     if type == 'A':
-        angle = angle + np.pi/2
+        offset = np.pi/2
     elif type == 'C':
-        angle = angle - np.pi/2
+        offset =  - np.pi/2
+    angle = angle + offset
     if fmt == 'UV':
         u = norm * np.cos(angle)
         v = norm * np.sin(angle)
@@ -113,3 +116,71 @@ def FindCenter2(eddies,eddy,m=Basemap(projection='merc')):
     lon_center,lat_center = FindCenter(U_me,V_me,lon,lat,lon_c_prior,lat_c_prior)
     omega,score = FindOmega(U_me,V_me,lon,lat,lon_center,lat_center)
     return(lon_center,lat_center,omega)
+
+def R_lin(size,data,coords,zero):
+    """
+    Gives the r squared for the reg around center of size size
+    """
+    if np.isfinite(zero):
+        subdata = data[(coords > zero - size)*(coords < zero + size)]
+        subcoords = coords[(coords > zero - size)*(coords < zero + size)]
+        fidx = np.where(np.isfinite(subdata))[0]
+        if len(fidx) > 0:
+            fdata = subdata[fidx]
+            fcoords = subcoords[fidx]
+            res = stats.linregress(fcoords,fdata)
+            coeffs = np.array([res[0],res[1]])
+            omega = np.abs(np.arctan(coeffs[0]))
+            rs = res[2]**2
+            p = res[3]
+        else:
+            rs = np.nan
+            p = np.nan
+            omega = np.nan
+            coeffs = np.array([np.nan,np.nan])
+    else:
+        rs = np.nan
+        p = np.nan
+        omega = np.nan
+        coeffs = np.array([np.nan,np.nan])
+    return(rs,p,omega,coeffs)
+
+def SBExtension(data,xcoords,deltat,sizemax = 200e3):
+    """
+    data is 1D
+    coords is coords
+    """
+    Ss = np.arange(1e3,sizemax+1e3,1e3)
+    lgth = len(Ss)
+    Rs = []
+    Ps = []
+    Os = []
+    Cs = []
+
+    if np.sum(np.isfinite(data)) == 0:
+        Rs = np.full(lgth,np.nan)
+        Ps = np.full(lgth,np.nan)
+        Os = np.full(lgth,np.nan)
+        Cs = np.full(lgth,np.nan)
+        zero = np.nan
+    else:
+        vmint = np.nancumsum(data)*deltat
+        ymax = np.nanmax(vmint)
+        vc_idx = np.where(vmint == ymax)[0]
+        zero = xcoords[vc_idx]
+        if len(zero) == 0:
+            zero = np.nan
+        elif len(zero) > 0:
+            zero = zero[0]
+        for size in Ss:
+            r,p,o,coeffs = R_lin(size,data,xcoords,zero)
+            Os.append(o)
+            Rs.append(r)
+            Ps.append(p)
+            Cs.append(coeffs)
+    Ss = np.array(Ss)
+    Rs = np.array(Rs)
+    Ps = np.array(Ps)
+    Os = np.array(Os)
+    Cs = np.array(Cs)
+    return(Ss,Rs,Ps,Os,Cs,zero)
