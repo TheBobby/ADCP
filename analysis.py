@@ -231,7 +231,7 @@ def BoxCarFilter2(M,x,y,z,xdist,ydist,zdist):
             val = np.nanmean(Mf[indexes])
         Mp[i] = val
     Mpuf = np.reshape(Mp,(xl,zl))
-    return(Mp)
+    return(Mpuf)
 
 
 def FindMaxMin(V,atd,depths,depthlim = [0,3000]):
