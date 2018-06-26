@@ -149,6 +149,7 @@ def SBExtension(data,xcoords,deltat,sizemax = 200e3):
     """
     data is 1D
     coords is coords
+    to fix: allow asymmetry around center
     """
     Ss = np.arange(1e3,sizemax+1e3,1e3)
     lgth = len(Ss)
@@ -184,3 +185,83 @@ def SBExtension(data,xcoords,deltat,sizemax = 200e3):
     Os = np.array(Os)
     Cs = np.array(Cs)
     return(Ss,Rs,Ps,Os,Cs,zero)
+
+def AngularError(coords,xm,ym,cos_m,sin_m):
+    xc = coords[0]
+    yc = coords[1]
+    angles_s,norms_s = Simulate(xc,yc,xm,ym,omega=1e-5,fmt='AN')
+    cos_s = np.cos(angles_s)
+    sin_s = np.sin(angles_s)
+    rr = np.sqrt((sin_m - sin_s)**2 + (cos_m - cos_s)**2)
+    N = np.sum(np.isfinite(rr))
+    if N == 0:
+        rr = np.nan
+    else:
+        rr = np.nansum(rr)/np.sqrt(2*N)
+    return(rr)
+
+def MapError(xplore,yplore,xm,ym,cos_m,sin_m,mask=None):
+    """
+    """
+    if mask is None:
+        msk = np.array([True for i in range(len(xm))],dtype='bool')
+    else :
+        msk = ~mask
+    Merr = np.full((len(xplore),len(yplore)),np.nan)
+    for i in range(len(xplore)):
+        for j in range(len(yplore)):
+            xi = xplore[i]
+            yj = yplore[j]
+            rr = AngularError([xi,yj],xm[msk],ym[msk],cos_m[msk],sin_m[msk])
+            Merr[i,j] = rr
+    return(Merr)
+
+def SolidBodyCorrelation(U,V,atd,depths,sizemax=200e3,deltat=10):
+    """
+    Extracts the SBR component from the data
+    Problem is that if the boat track is not linear it could artificially reduce the SBRC extension..
+    Also, coded only for A eddies
+    """
+    # Init
+    Rvals = []
+    Pvals = []
+    Zeros = []
+    # For every depth compute different distances from the center correlations with lines
+    for i in range(len(depths)):
+        um = U[:,i]
+        vm = V[:,i]
+        size,rval,pval,omega,coeffs,zero = SBExtension(vm,atd,deltat,sizemax=sizemax)
+        Rvals.append(rval)
+        Pvals.append(pval)
+        Zeros.append(zero)
+    ##
+    Rvals = np.array(Rvals)
+    Pvals = np.array(Pvals)
+    Zeros = np.array(Zeros)
+    ## putting everything on nice matrixes
+    plus = np.array([Zeros[i] + size for i in range(len(depths))])
+    moins = np.array([Zeros[i] - size for i in range(len(depths))])
+    moins = np.fliplr(moins)
+    faisceau = np.append(moins,plus,axis=1)
+    ZZ2 = np.repeat(depths,len(size)*2).reshape((len(depths),len(size)*2))
+    slavR = np.fliplr(Rvals)
+    Rvals_sim = np.append(slavR,Rvals,axis=1)
+    slavP = np.fliplr(Pvals)
+    Pvals_sim = np.append(slavP,Pvals,axis=1)
+    return(faisceau,ZZ2,Rvals_sim,Pvals_sim)
+
+def SBRCindex(Rvals,atd,faisceau,depths,thresh=0.8):
+    ## Extract solid body from the data
+    indexes_x = np.array([])
+    indexes_z = np.array([])
+    for i in range(len(depths)):
+        faisc = faisceau[i,Rvals[i,:] > thresh]
+        if len(faisc) > 0:
+            atd_inf = np.nanmin(faisc)
+            atd_sup = np.nanmax(faisc)
+            indexes_to_mask = np.where((atd < atd_inf)+(atd > atd_sup))[0]
+            dindex = np.array([i]*len(indexes_to_mask))
+            indexes_x = np.append(indexes_x,indexes_to_mask)
+            indexes_z = np.append(indexes_z,dindex)
+    indexes = (np.array(indexes_x,dtype=int),np.array(indexes_z,dtype=int))
+    return(indexes)
