@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import analysis
+import matplotlib.tri as tri
 
 ### Defining global colormap for ADCP Plotting
 cmap = mpl.cm.viridis
@@ -144,12 +145,29 @@ def PlotADCP(ax,atd,depths,V):
     global levels2
     global cmap
     global norm
-    X,Y = np.meshgrid(atd/1000,depths)
-    ax.contourf(X,Y,np.transpose(V),levels=levels,cmap=cmap,norm=norm)
-    cont = ax.contour(X,Y,np.transpose(V),levels = levels2,linewidths=0.5,colors='black',linestyles='dashed')
+    X = []
+    Z = []
+    for i in range(len(atd)):
+        for j in range(len(depths)):
+            X.append(atd[i])
+            Z.append(depths[j])
+    X = np.array(X)
+    Z = np.array(Z)
+    Vf = V.flatten()
+    # Regular grid
+    xi = np.linspace(min(atd),max(atd), len(atd))
+    zi = np.linspace(min(depths), max(depths), len(depths))
+    # Perform linear interpolation of the data (x,y)
+    # on a grid defined by (xi,yi)
+    triang = tri.Triangulation(X, Z)
+    interpolator = tri.LinearTriInterpolator(triang, Vf)
+    Xi, Zi = np.meshgrid(xi, zi)
+    Vi = interpolator(Xi, Zi)
+    ax.contourf(Xi,Zi,Vi,levels=levels,cmap=cmap,norm=norm)
+    cont = ax.contour(Xi,Zi,Vi,levels = levels2,linewidths=0.5,colors='black',linestyles='dashed')
     ax.clabel(cont,cont.levels,fmt='%1.2f',fontsize=8, inline=1,colors='k')
     lvl0 = [0]
-    ax.contour(X,Y,np.transpose(V),levels=lvl0,colors='black',linewidths=2)
+    ax.contour(Xi,Zi,Vi,levels=lvl0,colors='black',linewidths=2)
 
 def PlotMaxMin(ax,V,atd,depths):
     """
