@@ -200,6 +200,20 @@ def AngularError(coords,xm,ym,cos_m,sin_m):
         rr = np.nansum(rr)/np.sqrt(2*N)
     return(rr)
 
+def Error(pos,xm,ym,um,vm):
+    """
+    Computes non only the angular error but the absolute distance in the complex plane
+    """
+    xc,yc,o = pos
+    us,vs = Simulate(xc,yc,xm,ym,omega=o,fmt='UV')
+    rr = np.sqrt((um - us)**2 + (um - us)**2)
+    N = np.sum(np.isfinite(rr))
+    if N == 0:
+        rr = np.nan
+    else:
+        rr = np.nansum(rr)/np.sqrt(2*N)
+    return(rr)
+
 def MapError(xplore,yplore,xm,ym,cos_m,sin_m,mask=None):
     """
     """
