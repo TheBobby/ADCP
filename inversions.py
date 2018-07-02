@@ -40,6 +40,56 @@ def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A',fmt='AN'):
     elif fmt == 'AN':
         return(angle,norm)
 
+def Rankine(r,R,V):
+    v = np.zeros(r.shape)
+    v[np.abs(r) <= R] = V*r[np.abs(r) <= R]/R
+    v[np.abs(r) > R] = V*R/r[np.abs(r) > R]
+    return(v)
+
+def RankineErr(par,r,vm):
+    """
+    par is (R,V)
+    """
+    rR,rV = par
+    rVs = Rankine(r,rR,rV)
+    rr = np.nansum(np.sqrt((vm - rVs)**2))/np.sqrt(2*np.sum(np.isfinite(vm)))
+    return(rr)
+
+def SimulateRankine(x,y,xc,yc,R,V,type='A',cut='Z',fmt='UV'):
+    """
+    Simulates a Rankine vortex sampled on x and y
+    optional:
+        type: type of eddy (default A for anticyclonic, can be C)
+        cut: orientation of the cut (default Z for Zonal M for meridional)
+        fmt: output format, can be UV or AN for angles and norms
+    """
+    if cut == 'Z':
+        coord = x
+        centercoord = xc
+    elif cut == 'M':
+        coord = y
+        centercoord = yc
+    else:
+        raise ValueError('''Unexpected value for cut. must be either 'Z' or 'M' ''',cut)
+    rs = np.sqrt((xc- x)**2 + (yc - y)**2)
+    angles = np.angle((x - xc) + (y - yc)*1j,deg=False)
+    norms = Rankine(rs,R,V)
+    if type == 'A':
+        offset = np.pi/2
+    elif type == 'C':
+        offset = -np.pi/2
+    else:
+        raise ValueError('''Unexpected value for type, should be 'A' or 'C' got ''',type)
+    angles = angles + offset
+    if fmt == 'UV':
+        u = norms * np.cos(angles)
+        v = norms * np.sin(angles)
+        return(u,v)
+    elif fmt == 'AN':
+        return(angles,norms)
+    else:
+        raise ValueError('''Unexpected value for fmt, should be 'AN' or 'UV' got ''',fmt)
+
 
 def FindCenter(U,V,lon,lat,lon_c_prior,lat_c_prior,complete=False,m=Basemap(projection='merc')):
     '''

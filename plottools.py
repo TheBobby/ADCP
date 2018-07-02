@@ -76,7 +76,7 @@ def Hodograph(ax,xlim,xtext=True,ytext=True,grid=2):
         ax.text(x = xtext[1],y = ytext[1],s = str(deg2)+'°',horizontalalignment='center',verticalalignment='center')
 
         # Angle ticks
-    for i in range((xlim//2)+1):
+    for i in range(len(x_ticks)):
         circle = plt.Circle((0,0),i*grid,fill=False,color='grey',alpha=0.4)
         ax.add_artist(circle)
     circle = plt.Circle((0,0),xlim,fill=False,color='k',alpha=1)
