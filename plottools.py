@@ -134,17 +134,13 @@ def PlotHodograph(ax,U,V,deltat,legend=True,orientation='EW',type='A'):
     if legend:
         ax.legend(handles = [first_point,last_point,center],bbox_to_anchor=(1.1, 1))
 
-def PlotADCP(ax,atd,depths,V):
+def PlotADCP(ax,atd,depths,V,levels=levels,levels2=levels2,cmap=cmap,norm=norm):
     """
     Still unfinished with flexibility of reg and filt
     TODO adapt to filtered and regular data
     Returns km
     levels can be
     """
-    global levels
-    global levels2
-    global cmap
-    global norm
     X = []
     Z = []
     for i in range(len(atd)):

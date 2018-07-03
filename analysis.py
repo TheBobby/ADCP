@@ -43,6 +43,25 @@ def RegularGrid(matrix,x,dx,y):
             matrix_reg[i,j] = fill
     return(matrix_reg,xreg)
 
+def RegularLine(x,y,dx):
+    xreg = np.arange(min(x) + dx/2,max(x) - dx/2,dx)
+    matrix_reg = np.full(len(xreg),np.nan)
+    for i in range(len(xreg)):
+        val = xreg[i]
+        valsup = val + dx/2
+        valinf = val - dx/2
+        #find the points laying in the interval
+        indexes = np.where((x >= valinf) * (x <= valsup))
+        if len(indexes) == 0:
+            fill = np.nan
+        elif np.sum(np.isfinite(y[indexes])) == 0:
+            fill = np.nan
+        else:
+            fill = np.nanmean(y[indexes])
+        matrix_reg[i] = fill
+    return(matrix_reg,xreg)
+
+
 def RegularGrid2D(matrix,x,y,dx,scale=1e3):
     """
     regularaizes the grid
