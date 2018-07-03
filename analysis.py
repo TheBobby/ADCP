@@ -290,10 +290,12 @@ def TrackSSH(lon,lat,SSH,date,mid=True):
     ssh = np.array(ssh)
     return(ssh)
 
-def VirtualCenter(U_int,V_int,orientation='EW'):
+def VirtualCenter(v,orientation='EW',deltat=10):
     """
     Finds the hodograph virtual center index
     """
+    #U_int = np.nancumsum(u)*deltat
+    V_int = np.nancumsum(v)*deltat
     if orientation == 'EW':
         # Anticylonic case and EW section
         y_max = np.nanmax(np.abs(V_int))
@@ -301,14 +303,14 @@ def VirtualCenter(U_int,V_int,orientation='EW'):
         if len(index)>0:
             index = index[0]
         else:
-            index = None
+            index = False
     elif orientation == 'SN':
         x_max = np.nanmax(np.abs(U_int))
         index = np.where(U_int == x_max)[0]
         if len(index)>0:
             index = index[0]
         else:
-            index = None
+            index = False
     return(index)
 
 

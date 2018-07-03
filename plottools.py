@@ -51,9 +51,9 @@ def Hodograph(ax,xlim,xtext=True,ytext=True,grid=2):
         ax.text(x_ticks[j],y_ticks[j],ticks[j])
     # Annotate the axes
     if xtext:
-        ax.text(0,-xlim - 1.5,'Eastward distance (km)',fontsize=16,horizontalalignment='center',verticalalignment='center')
+        ax.text(0,-xlim - xlim/6,'Eastward distance (km)',fontsize=16,horizontalalignment='center',verticalalignment='center')
     if ytext:
-        ax.text(-xlim - 1.5,0,'Northward distance (km)',fontsize=16,rotation=90,horizontalalignment='center',verticalalignment='center')
+        ax.text(-xlim - xlim/6,0,'Northward distance (km)',fontsize=16,rotation=90,horizontalalignment='center',verticalalignment='center')
     # Make the grid
         # Lines
     angle = np.pi/6
@@ -63,8 +63,8 @@ def Hodograph(ax,xlim,xtext=True,ytext=True,grid=2):
         angles = np.array([angle,angle2])
         x = np.cos(angles)*xlim
         y = np.sin(angles)*xlim
-        xtext = np.cos(angles)*(xlim + .5)
-        ytext = np.sin(angles)*(xlim + .5)
+        xtext = np.cos(angles)*(xlim + xlim/12)
+        ytext = np.sin(angles)*(xlim + xlim/12)
         ax.plot(x,y,'grey',alpha=0.3)
         deg = int(np.round(np.rad2deg(angle-np.pi/2)))
         deg2 = int(np.round(np.rad2deg(angle2-np.pi/2)))
