@@ -10,12 +10,88 @@ import matplotlib as mpl
 import numpy as np
 import analysis
 import matplotlib.tri as tri
+from mpl_toolkits.basemap import Basemap
+import netCDF4 as nc
 
 ### Defining global colormap for ADCP Plotting
 cmap = mpl.cm.viridis
 norm = mpl.colors.Normalize(vmin = -0.5, vmax = 0.5)
 levels = np.round(np.arange(-0.5,0.55,.05),2)
 levels2 = np.delete(levels,np.where(levels==0))
+
+def ADCP_surf(ax,eddy,eddies,ADCPdata,SSHdata,contours,detections,grid=2):
+    '''
+    Returns a figure with the quiver plot of velocities at required depth along cruise track on selected eddy
+    eddie is a string
+    ADCPdata is a dict of the good shape
+    depth is a float or integer
+    '''
+    ## Useful variables
+    ID = eddies[eddy]['ID']
+    boxx = eddies[eddy]['box_X']
+    boxy = eddies[eddy]['box_Y']
+    lgmin = min(boxx)
+    lgmax = max(boxx)
+    ltmin = min(boxy)
+    ltmax = max(boxy)
+    index_dtc = np.where(detections['IDs'] == ID)
+    date = dt.datetime.fromordinal(detections['Dates'][index_dtc][0])
+    dptmax = 150
+    dptmin = 50
+    ## Retrieving ADT field
+    date = nc.date2num(date,'hours since 1950-01-01 12:00:00')
+    index = np.where(file['time'][:] == date)[0][0]
+    sshlon = file['longitude'][:]
+    sshlat = file['latitude'][:]
+    adt = file['zos'][index,:,:]
+    X,Y = np.meshgrid(sshlon,sshlat)
+    ## Center of detection
+    xcenter = detections['Xs'][index_dtc]
+    ycenter = detections['Ys'][index_dtc]
+    ## Retrieving contour
+    contour = contours[ID]
+    xc = contour['X']
+    yc = contour['Y']
+    ## Retrieving ADCP data
+    longitudes = ADCPdata['longitudes']
+    latitudes = ADCPdata['latitudes']
+    dindexes = (ADCPdata['depths'] < dptmax)*ADCPdata['depths'] > dptmin
+    pindexes = (longitudes < lgmax)*(longitudes > lgmin)*(latitudes < ltmax)*(latitudes > ltmin)
+    U = ADCPdata['U'][pindexes,indexes].mean(axis=1)
+    V = ADCPdata['V'][pindexes,indexes].mean(axis=1)
+    ## Setting up the projection
+    m = Basemap(projection='merc',llcrnrlat=ltmin,urcrnrlat=ltmax,llcrnrlon=lgmin,urcrnrlon=lgmax,resolution='c')
+    Xc,Yc = m(xc,yc)
+    Xcenter,Ycenter = m(xcenter,ycenter)
+    x,y = m(longitudes,latitudes)
+    ## Plotting
+    # ADT field
+    mesh = m.pcolormesh(X,Y,adt,cmap = plt.cm.jet,latlon=True)
+    mesh.set_clim(vmin = -0.05, vmax = 0.4)
+    cbar = plt.colorbar(mesh,ticks = np.arange(-0.05,0.41,.1))
+    cbar.set_label('ADT (m)')
+    # Contour
+    ax.plot(Xc,Yc)
+    # Center
+    ax.plot(Xcenter,Ycenter,'*',ms=5)
+    # Quiver
+    Q = ax.quiver(x,y,U,V,scale=5,pivot='tail',width=0.001)
+    xleg = lgmin + 0.7
+    yleg = ltmin + 0.1
+    x,y = m(xleg,yleg)
+    ax.quiverkey(Q,x,y,1, '1 m/s', coordinates='data')
+
+    ax.plot(x,y,'-k',linewidth=0.2)
+    # Meridians and parallels
+    parallels=np.arange(ltmin,ltmax,grid)
+    meridians=np.arange(lgmin,lgmax,grid)
+    m.drawparallels(parallels,labels=[1,0,0,0],color='grey')
+    m.drawmeridians(meridians,labels=[0,0,0,1],color='grey')
+    # Coastlines
+    m.drawcoastlines()
+    # Title
+    title = 'Velocity averaged between ' + str(dptmin) + ' and ' + str(dptmax) + 'm around eddy ' + eddy
+    ax.title(title)
 
 
 def Hodograph(ax,xlim,xtext=True,ytext=True,grid=2):
