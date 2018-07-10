@@ -6,6 +6,8 @@ from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 import numpy.ma as ma
+import analysis,level2
+import scipy.optimize as sciopt
 
 def Simulate(x_center,y_center,x_me,y_me,omega=np.pi*1e-6,type='A',fmt='AN'):
     """
@@ -256,3 +258,105 @@ def SBRCindex(Rvals,atd,faisceau,depths,thresh=0.8):
             indexes_z = np.append(indexes_z,dindex)
     indexes = (np.array(indexes_x,dtype=int),np.array(indexes_z,dtype=int))
     return(indexes)
+
+def RankineErrorCenter(cpar,xm,ym,um,vm):
+    xc,yc,R,V = cpar
+    center = (xc,yc)
+    par = (R,V)
+    u,v = SimulateRankine(center,par,xm,ym)
+    fntidx = np.isfinite(um)
+    err = np.nansum(np.sqrt((um[fntidx] - u[fntidx])**2 + (vm[fntidx] - v[fntidx])**2))/np.sqrt(2*np.sum(fntidx))
+    return(err)
+
+def VirtualCenters(V,x,y,depths,deltat=10):
+    Xvc = []
+    Yvc = []
+    for i in range(len(depths)):
+        vm = V[:,i]
+        if np.sum(np.isnan(vm)) == len(vm):
+            xvc = np.nan
+            yvc = np.nan
+        else :
+            index = analysis.VirtualCenter(vm)
+            if index == False:
+                xvc = np.nan
+                yvc = np.nan
+            else:
+                xvc = x[index]
+                yvc = y[index]
+        Xvc.append(xvc)
+        Yvc.append(yvc)
+    Xvc = np.array(Xvc)
+    Yvc = np.array(Yvc)
+    return(Xvc,Yvc)
+
+def RankineCenters(U,V,xm,ym,Xvc,Yvc,depths,ToMinFun=RankineErrorCenter):
+    Xc = []
+    Yc = []
+    Er = []
+    S = []
+    Xc = np.full(len(depths),np.nan)
+    Yc = np.full(len(depths),np.nan)
+    rRs = np.full(len(depths),np.nan)
+    rVs = np.full(len(depths),np.nan)
+    Er = np.full(len(depths),np.nan)
+    S = np.full(len(depths),False)
+
+    for i in range(len(depths)):
+        if np.isfinite(Xvc[i]):
+            res = sciopt.minimize(fun = ToMinFun,x0=(Xvc[i],Yvc[i],75e3,0.4),
+                                  args=(xm,ym,U[:,i],V[:,i]),method='Powell',tol=1e-10)
+        else:
+            res = {'x':[np.nan,np.nan,np.nan,np.nan],'fun':np.nan,'success':False}
+
+        Xc[i] = res['x'][0]
+        Yc[i] = res['x'][1]
+        rRs[i] = res['x'][2]
+        rVs[i] = res['x'][3]
+        Er[i] = res['fun']
+        S[i] = res['success']
+    return(Xc,Yc,rRs,rVs,Er,S)
+
+def SimulatedField(Xc,Yc,rRs,rVs,x,y):
+    rkV = np.full((len(x),len(Xc)),np.nan)
+    rkU = np.full((len(x),len(Xc)),np.nan)
+    for i in range(len(Xc)):
+        if np.isfinite(Xc[i]):
+            rkU[:,i],rkV[:,i] = SimulateRankine((Xc[i],Yc[i]),(rRs[i],rVs[i]),x,y)
+    return(rkU,rkV)
+
+def ProjectEddyFrame(U,V,x,y,Xc,Yc):
+    """
+    Projects everything in the eddy frame
+    """
+    Ur = np.zeros(U.shape)
+    Vr = np.zeros(V.shape)
+    R = np.zeros(U.shape)
+    R2 = np.zeros(U.shape)
+    for i in range(U.shape[1]):
+        xc = Xc[i]
+        yc = Yc[i]
+        if np.isfinite(xc):
+            v = V[:,i]
+            u = U[:,i]
+            r = np.sqrt((x-xc)**2 + (y - yc)**2)
+            s = np.sign(x-xc)
+            s[s == 0] = 1
+            r2 = s*np.sqrt((x-xc)**2 + (y - yc)**2)
+            angles = np.angle((x - xc) + (y - yc)*1j,deg=False)
+            num = np.isfinite(u)
+            for j in range(len(angles)):
+                if num[j]:
+                    theta = angles[j]
+                    uri,vri = level2.Rotation([u[j]],[v[j]],theta,[0,0])
+                else:
+                    uri = np.nan
+                    vri = np.nan
+                Ur[j,i] = s[j]*uri
+                Vr[j,i] = s[j]*vri
+        else:
+            Ur[:,i] = np.full(len(angles),np.nan)
+            Vr[:,i] = np.full(len(angles),np.nan)
+        R[:,i] = r
+        R2[:,i] = r2
+    return(Ur,Vr,R,R2)
